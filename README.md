@@ -27,165 +27,147 @@ pipeline_variantes/
 │   └── hg19/
 │       ├── hg19.fa
 │       └── (outros índices .amb, .ann, .pac, .fai, .dict)
+# Pipeline de Chamada de Variantes Germinativas (FASTQ → VCF)
+
+Um pipeline em Bash para transformar arquivos FASTQ (dados brutos de sequenciamento) em um VCF com variantes germinativas. Segue as Best Practices do GATK4 e usa ferramentas padrão da indústria: BWA, Samtools, GATK e FastQC.
+
+Principais características
+- Generalista: funciona com WGS, WES ou painéis — parâmetros via linha de comando.
+- Robusto: checks para existência de arquivos/pastas antes de rodar.
+- Eficiente: usa pipes onde possível para reduzir I/O e arquivos intermediários.
+- Organizado: estrutura de pastas clara para dados, referências, scripts e resultados.
+
+Índice
+- Estrutura do projeto
+- Requisitos
+- Instalação (Conda)
+- Preparar o genoma de referência (indexação)
+- Uso (exemplos)
+- O que o script faz (resumo dos passos)
+- Próximos passos / Anotação
+
+## Estrutura do projeto
+
+O repositório espera a seguinte organização (nomes de pastas sugeridos):
+
+pipeline_variantes/
+├── 01_raw_data/            # arquivos .fastq / .fastq.gz
+├── 02_genome_reference/    # referência .fa e índices
+│   └── hg19/
+│       ├── hg19.fa
+│       └── (hg19.fa.amb, .ann, .pac, .fai, .dict, ...)
 ├── 03_scripts/
-│   └── run_pipeline.sh     # (O script principal do pipeline)
-├── 04_quality_control/     # (Saída dos relatórios do FastQC)
-├── 05_alignment_results/   # (Saída dos arquivos .bam e .bai)
-├── 06_variant_calling/     # (Saída do arquivo final .vcf)
-├── 07_annotated_variants/  # (Reservado para anotação)
-├── 08_final_reports/       # (Reservado para relatórios finais)
-├── logs/                     # (Reservado para logs de execução)
+│   └── run_pipeline.sh     # script principal
+├── 04_quality_control/     # saída do FastQC
+├── 05_alignment_results/   # arquivos .bam e índices
+├── 06_variant_calling/     # arquivo final .vcf
+├── 07_annotated_variants/  # (opcional) arquivos anotados
+├── 08_final_reports/       # relatórios finais/plots
+├── logs/                   # logs de execução
 └── README.md
-Instalação e Configuração
-Siga estes passos cuidadosamente para configurar o ambiente e as dependências.
 
-## Instalação e Configuração
+## Requisitos
+- Sistema: Linux (Ubuntu/CentOS) ou Windows + WSL2
+- Miniconda/Conda
+- Bash
+- Git
 
-Siga estes passos cuidadosamente para configurar o ambiente e as dependências.
+Ferramentas usadas (instaladas via Conda): BWA, Samtools, GATK4, FastQC. Opcional: bcftools, picard.
 
-Pré-requisitos
-Um sistema operacional Linux (ex: Ubuntu, CentOS) ou WSL2 no Windows.
+## Instalação (ambiente Conda)
 
-O gerenciador de pacotes Miniconda instalado.
+1. Configure canais Conda (uma vez):
 
-Bash
-
-git clone [URL_DO_SEU_REPOSITORIO_GITHUB]
-cd pipeline_variantes
-2. Instale as Dependências (Ambiente Conda)
-Todas as ferramentas de bioinformática são gerenciadas através de um ambiente Conda dedicado. Isso garante 100% de reprodutibilidade.
-
-O comando abaixo irá criar um novo ambiente chamado `pipeline_variantes` com todas as ferramentas necessárias (BWA, Samtools, GATK4 e FastQC):
-
-Bash
-
-# (Certifique-se de ter os canais bioconda e conda-forge configurados)
+```bash
 conda config --add channels defaults
 conda config --add channels bioconda
 conda config --add channels conda-forge
+```
 
-# Crie o ambiente (isso pode levar alguns minutos)
-conda create -n pipeline_variantes bwa samtools gatk4 fastqc
-
-**Atenção**: Como o `bcftools` e `picard` foram mencionados no setup inicial mas não são usados ativamente no script final, eles foram omitidos por simplicidade. Se desejar, adicione-os ao comando `create`.
-
-3. Prepare o Genoma de Referência (Passo ÚNICO!)
-Este é o passo mais crucial e demorado. Ele só precisa ser feito uma vez.
-
-Baixe seu genoma de referência em formato FASTA (ex: `hg19.fa`) e coloque-o na pasta `02_genome_reference/hg19/`.
-Verifique o caminho do genoma dentro do script. Abra 03_scripts/run_pipeline.sh com um editor (ex: nano) e confirme se a variável GENOME_REF aponta para o local correto do seu arquivo .fa:
-
-Bash
-
-# Linha ~10 dentro de run_pipeline.sh
-GENOME_REF="/root/pipeline_variantes/02_genome_reference/hg19/hg19.fa"
-(Altere /root/ para seu caminho de usuário, se for diferente).
-
-**(Altere `/root/` para seu caminho de usuário, se for diferente).**
-
-Bash
-
-# 1. Ative o ambiente
-conda activate pipeline_variantes
-
-# 2. Indexe para o BWA (MUITO DEMORADO: 1-2 horas)
-bwa index /root/pipeline_variantes/02_genome_reference/hg19/hg19.fa
-
-# 3. Indexe para o Samtools (Rápido)
-samtools faidx /root/pipeline_variantes/02_genome_reference/hg19/hg19.fa
-
-# 4. Crie o Dicionário para o GATK (Rápido)
-gatk CreateSequenceDictionary -R /root/pipeline_variantes/02_genome_reference/hg19/hg19.fa
-
-Seu ambiente está pronto!
-
-Como Usar o Pipeline
-Siga os passos abaixo toda vez que quiser processar uma nova amostra.
-
-## Como Usar o Pipeline
-1. Ative o Ambiente Conda
-Sempre que você abrir um novo terminal, ative o ambiente para ter acesso às ferramentas:
-
-Bash
-
-conda activate pipeline_variantes
-2. Adicione seus Dados Brutos (FASTQ)
-Copie seus arquivos de sequenciamento (`.fastq` ou `.fastq.gz`) para a pasta `01_raw_data/`.
-
-3. Execute o Pipeline
-O script `run_pipeline.sh` espera três argumentos na linha de comando:
-
-*   Um nome único para sua amostra (ex: `Amostra_01`).
-*
-O caminho completo para o arquivo FASTQ Read 1 (R1).
-
-O caminho completo para o arquivo FASTQ Read 2 (R2).
-
-Sintaxe do Comando:
-Bash
+2. Crie o ambiente com as ferramentas básicas:
 
 ```bash
-Exemplo de Execução Real:
-Bash
-
-# (Certifique-se de estar na pasta raiz 'pipeline_variantes')
-
-./03_scripts/run_pipeline.sh \
-    cap-ngse-a-2019_S1 \
-    01_raw_data/cap-ngse-a-2019_S1_L001_R1_001.fastq \
-    01_raw_data/cap-ngse-a-2019_S1_L001_R2_001.fastq
+conda create -n pipeline_variantes bwa samtools gatk4 fastqc
 ```
-O script irá executar todo o fluxo de trabalho automaticamente, exibindo o progresso de cada passo.
 
-O que o Script Faz (Passo a Passo)
+Observação: adicione `bcftools` e `picard` se desejar.
 
-Verifica se todos os diretórios de saída (04_..., 05_..., etc.) existem. Se não, eles são criados.
+## Preparar o genoma de referência
 
-Verifica se os arquivos R1 e R2 fornecidos realmente existem no disco. Se não, o script para com um erro claro.
+Coloque o FASTA do genoma em `02_genome_reference/hg19/hg19.fa` (ou altere o caminho no script). Indexe o genoma uma vez antes de rodar o pipeline:
 
-[PASSO 1] Controle de Qualidade (FastQC):
+```bash
+conda activate pipeline_variantes
 
-Gera relatórios de qualidade para os arquivos FASTQ brutos.
-## O que o Script Faz (Passo a Passo)
-Saída: Relatórios .html na pasta 04_quality_control/.
+# BWA (pode levar 1-2 horas para genomas grandes)
+bwa index 02_genome_reference/hg19/hg19.fa
 
-[PASSO 2] Alinhamento e Pós-Processamento (BWA-MEM & Samtools):
+# Samtools
+samtools faidx 02_genome_reference/hg19/hg19.fa
 
-Alinha as reads (R1 e R2) contra o genoma de referência.
+# GATK (cria dicionário)
+gatk CreateSequenceDictionary -R 02_genome_reference/hg19/hg19.fa
+```
 
-Adiciona o Read Group (RG), essencial para o GATK.
+Observação: se o script aponta para um caminho absoluto (ex: /root/...), atualize a variável `GENOME_REF` dentro de `03_scripts/run_pipeline.sh` para o caminho correto no seu sistema.
 
-Converte o alinhamento (SAM) para o formato binário (BAM).
+## Uso
 
-Ordena o arquivo BAM por coordenadas genômicas.
+1. Ative o ambiente Conda:
 
-Cria um índice (.bai) para o BAM ordenado.
+```bash
+conda activate pipeline_variantes
+```
 
-Saída: Arquivos `.sorted.bam` e `.sorted.bam.bai` na pasta `05_alignment_results/`.
+2. Coloque seus arquivos FASTQ em `01_raw_data/`.
 
-[PASSO 3] Marcar Duplicatas (GATK MarkDuplicates):
+3. Execute o pipeline (exemplo):
 
-Lê o BAM ordenado e identifica duplicatas de PCR.
+```bash
+./03_scripts/run_pipeline.sh \
+    AMOSTRA_01 \
+    01_raw_data/AMOSTRA_01_R1.fastq.gz \
+    01_raw_data/AMOSTRA_01_R2.fastq.gz
+```
 
-Gera um novo arquivo BAM "limpo" com as duplicatas marcadas.
+O script espera: <sample_name> <path_R1> <path_R2>
 
-Cria um índice para o novo BAM marcado.
+## O que o script faz (resumo dos passos)
 
-Saída: Arquivos .sorted.marked.bam e .sorted.marked.bam.bai na pasta 05_alignment_results/.
+1) Verificações iniciais
+- Confere existência de diretórios de saída e arquivos de entrada; cria pastas faltantes.
 
-[PASSO 4] Chamada de Variantes (GATK HaplotypeCaller):
+2) Controle de qualidade (FastQC)
+- Gera relatórios HTML em `04_quality_control/`.
 
-Lê o BAM final (limpo e marcado) e o genoma de referência.
+3) Alinhamento e pós-processamento (BWA-MEM + Samtools)
+- Alinha R1/R2 contra a referência, adiciona Read Groups, converte para BAM, ordena e indexa.
+- Saída: `05_alignment_results/*.sorted.bam` e `.bai`.
 
-Analisa cada posição coberta e identifica onde a amostra difere da referência (SNPs e INDELs).
+4) Marcar duplicatas (GATK MarkDuplicates)
+- Produz `*.sorted.marked.bam` e índice correspondente.
 
-Saída (O Produto Final): Um arquivo `.vcf` contendo todas as variantes da amostra, salvo em `06_variant_calling/`.
+5) Chamada de variantes (GATK HaplotypeCaller)
+- Gera o VCF final em `06_variant_calling/`.
 
-Próximos Passos (Anotação)
-Este pipeline entrega um arquivo VCF "cru" (sem anotação). O próximo passo lógico é anotar este VCF para entender o significado biológico de cada variante.
+## Próximos passos / Anotação
 
-## Próximos Passos (Anotação)
+O resultado atual é um VCF "cru". Para interpretar variantes biologicamente, recomenda-se anotar com ferramentas como Ensembl VEP, ANNOVAR ou SnpEff.
 
-Este pipeline entrega um arquivo VCF "cru" (sem anotação). O próximo passo lógico é anotar este VCF para entender o significado biológico de cada variante.
+Um script de anotação (ex: `03_scripts/run_annotation_vep.sh`) está em desenvolvimento e pode ser adicionado ao repositório.
 
-Um script de anotação separado (ex: `03_scripts/run_annotation_vep.sh`), que utiliza o Ensembl VEP (Variant Effect Predictor), está em desenvolvimento e será adicionado a este projeto.
+## Dicas e notas
+- Ajuste a variável `GENOME_REF` em `03_scripts/run_pipeline.sh` para apontar ao caminho do seu FASTA.
+- Para grandes conjuntos de dados, execute em uma máquina com bastante RAM e CPU; BWA e GATK são CPU-intensivos.
+- Mantenha backups dos arquivos originais e dos índices do genoma — a indexação é feita apenas uma vez.
+
+## Licença e contato
+
+Adicione aqui a licença do projeto (por exemplo, MIT) e informações de contato ou link para issues no GitHub.
+
+---
+
+Se quiser, já posso:
+- ajustar o README para incluir badges (build/conda/status),
+- traduzir comandos para PowerShell/WSL quando necessário,
+- ou criar um exemplo mínimo de `run_pipeline.sh` para acompanhar o README.
