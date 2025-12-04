@@ -1,16 +1,13 @@
-#!/bin/bash
-# --- SCRIPT DE ANOTAÇÃO DE VARIANTES (VEP) ---
-# Autor: Cleber - Versão Final Corrigida
-# Data: 26/11/2025
 
+# Comando que para o script caso algo de ruim
 set -e
 
 # --- 1. CONFIGURAÇÃO DE CAMINHOS ---
 VEP_EXEC="$HOME/ensembl-vep-release-115/vep"
 CACHE_DIR="$HOME/.vep"
 
-# CAMINHO EXATO DO FASTA (Baseado no seu 'find')
-FASTA_FILE="/root/.vep/homo_sapiens/115_GRCh37/Homo_sapiens.GRCh37.75.dna.primary_assembly.fa"
+# CAMINHO EXATO DO FASTA 
+FASTA_FILE= # Insira o caminho aqui do fasta, que você baixou la no VEP (ESPERO QUE TENHA BAIXADO CERTO)
 
 # --- 2. ARGUMENTOS ---
 if [ "$#" -ne 2 ]; then
@@ -31,7 +28,6 @@ echo ">>> [VEP] Iniciando anotação para: $SAMPLE_NAME"
 echo ">>> FASTA utilizado: $FASTA_FILE"
 
 # --- 3. EXECUÇÃO ---
-# Aqui está a correção: adicionamos a linha --fasta $FASTA_FILE explicitamente
 
 $VEP_EXEC \
     --input_file $INPUT_VCF \
