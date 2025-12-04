@@ -154,7 +154,20 @@ O script espera: <sample_name> <path_R1> <path_R2>
 
 O resultado atual é um VCF "cru". Para interpretar variantes biologicamente, recomenda-se anotar com ferramentas como Ensembl VEP, ANNOVAR ou SnpEff.
 
-Um script de anotação (ex: `03_scripts/run_annotation_vep.sh`) está em desenvolvimento e pode ser adicionado ao repositório.
+Esse pipeline também possui um script de anotação via VEP, para utiliza-lo, basta entrar por esse link e baixar a versão de linha de comando:
+https://www.ensembl.org/info/docs/tools/vep/index.html
+
+## Como usar o anotador
+- O anotador é bem simples de utilizar, utilizando apenas um parametro, conforme explicado abaixo
+
+```bash
+./03_scripts/run_annotation.sh \
+    AMOSTRA_01 \
+    06_variant_calling/AMOSTRA.vcf
+```
+
+Com esse comando ele ira fazer toda a organização do pipeline, gerando um arquivo no formato html e outro txt para analise.
+OBSERVAÇÕES: Por motivos de otimização, os arquivos referencia, como os .fasta e os plugins do VEP, como dbsnp, revel, spliceAI, dentre outros, não foram colocados nesse script, eles deverão ser instalado conforme a necessidade do script. E provavelmente sera necessario alterar os caminhos conforme sua maquina/ambiente de trabalho
 
 ## Dicas e notas
 - Ajuste a variável `GENOME_REF` em `03_scripts/run_pipeline.sh` para apontar ao caminho do seu FASTA.
