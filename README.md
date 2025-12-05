@@ -180,7 +180,4 @@ Adicione aqui a licença do projeto (por exemplo, MIT) e informações de contat
 
 ---
 
-Se quiser, já posso:
-- ajustar o README para incluir badges (build/conda/status),
-- traduzir comandos para PowerShell/WSL quando necessário,
-- ou criar um exemplo mínimo de `run_pipeline.sh` para acompanhar o README.
+
