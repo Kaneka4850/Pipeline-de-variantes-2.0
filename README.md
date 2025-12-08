@@ -21,13 +21,7 @@ Estrutura do Projeto
 
 O pipeline espera e gera a seguinte estrutura de diretórios:
 
-pipeline_variantes/
-├── 01_raw_data/            # (Coloque seus arquivos .fastq/.fastq.gz aqui)
-├── 02_genome_reference/    # (Coloque seu genoma de referência .fa e índices aqui)
-│   └── hg19/
-│       ├── hg19.fa
-│       └── (outros índices .amb, .ann, .pac, .fai, .dict)
-# Pipeline de Chamada de Variantes Germinativas (FASTQ → VCF)
+<img width="796" height="186" alt="image" src="https://github.com/user-attachments/assets/fda1c630-7732-4c25-b0d8-6b8d3277ece3" />
 
 Um pipeline em Bash para transformar arquivos FASTQ (dados brutos de sequenciamento) em um VCF com variantes germinativas. Segue as Best Practices do GATK4 e usa ferramentas padrão da indústria: BWA, Samtools, GATK e FastQC.
 
@@ -50,21 +44,8 @@ Principais características
 
 O repositório espera a seguinte organização (nomes de pastas sugeridos):
 
-pipeline_variantes/
-├── 01_raw_data/            # arquivos .fastq / .fastq.gz
-├── 02_genome_reference/    # referência .fa e índices
-│   └── hg19/
-│       ├── hg19.fa
-│       └── (hg19.fa.amb, .ann, .pac, .fai, .dict, ...)
-├── 03_scripts/
-│   └── run_pipeline.sh     # script principal
-├── 04_quality_control/     # saída do FastQC
-├── 05_alignment_results/   # arquivos .bam e índices
-├── 06_variant_calling/     # arquivo final .vcf
-├── 07_annotated_variants/  # (opcional) arquivos anotados
-├── 08_final_reports/       # relatórios finais/plots
-├── logs/                   # logs de execução
-└── README.md
+<img width="518" height="401" alt="image" src="https://github.com/user-attachments/assets/da1e5122-b18b-4379-825b-37810926a33c" />
+
 
 ## Requisitos
 - Sistema: Linux (Ubuntu/CentOS) ou Windows + WSL2
@@ -176,8 +157,5 @@ OBSERVAÇÕES: Por motivos de otimização, os arquivos referencia, como os .fas
 
 ## Licença e contato
 
-Adicione aqui a licença do projeto (por exemplo, MIT) e informações de contato ou link para issues no GitHub.
-
----
 
 
