@@ -229,8 +229,8 @@ pytest tests/ -v
 - O pipeline estima 10x do tamanho GZ de entrada. Se está em WSL no Windows, verifique se seu disco `C:` não encheu.
 
 ### Erro do VEP Cache (Annotator falhou)
-- O Ensembl VEP pode necessitar cache baixado. Caso ikke o possua, edite `config.yaml` trocando a opção de anotação de variantes para desativada ou aponte a config de cache corretamente.
+- O Ensembl VEP pode necessitar cache baixado. Caso não o possua, edite `config.yaml` trocando a opção de anotação de variantes para desativada ou aponte a config de cache corretamente.
 
 ---
 
-*GATK4 Germline Best Practices - Pipeline modular reproduzível.*
+*Feito para fins demonstrativos, educacionais, não sendo permitido o uso comercial sem contato prévio*
