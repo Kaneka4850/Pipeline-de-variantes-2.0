@@ -1,0 +1,151 @@
+# ============================================================
+# Pipeline de Variantes Germinativas — Configuração Principal
+# ============================================================
+# Edite este arquivo para ajustar o pipeline ao seu ambiente.
+# Todos os caminhos são relativos à raiz do projeto, exceto
+# quando indicado como absoluto.
+# ============================================================
+
+# ---- Genoma de Referência ----
+reference:
+  # Caminho para o FASTA do genoma (relativo à raiz do projeto)
+  genome: "references/hg38.fa"
+
+  # Metadados opcionais para reprodutibilidade (se vazios, serão detectados)
+  name: "GRCh38"
+  version: ""
+  organism: "Homo sapiens"
+  source: ""
+
+  # Arquivos de variantes conhecidas para BQSR (opcional).
+  # Se vazio, o BQSR será automaticamente ignorado.
+  # Exemplos:
+  #   - "references/dbsnp_146.hg38.vcf.gz"
+  #   - "references/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz"
+  known_sites: []
+
+# ---- Diretórios ----
+dirs:
+  samples: "samples"             # FASTQs de entrada
+  results: "results"             # Saída organizada por amostra
+  logs: "logs"                   # Logs gerais do pipeline
+  database: "database"           # Banco SQLite
+
+# ---- Recursos Computacionais ----
+resources:
+  threads: 4                     # Threads por tarefa individual
+  memory_mb: 8000                # Memória máxima por tarefa (MB)
+  max_parallel: 4                # Número máximo de amostras em paralelo
+
+# ---- Caminhos das Ferramentas ----
+# Deixe vazio ("") para usar o executável do PATH do sistema.
+# Preencha com caminho absoluto apenas se necessário.
+tools:
+  bwa: ""
+  gatk: ""
+  samtools: ""
+  fastqc: ""
+  bcftools: ""
+  multiqc: ""                    # Opcional — se não instalado, etapa será ignorada
+  vep: ""
+
+# ---- Ensembl VEP ----
+vep:
+  # Diretório do cache do VEP (obrigatório para anotação)
+  cache_dir: ""
+  # Diretório dos plugins do VEP (opcional)
+  plugins_dir: ""
+  # Assembly genômico (deve corresponder ao genoma de referência)
+  assembly: "GRCh38"
+  # Flags adicionais passadas diretamente ao VEP
+  # Exemplos: "--sift b --polyphen b --regulatory --canonical"
+  extra_flags: "--everything --offline"
+
+  # ---- Plugins VEP (desabilitados por padrão) ----
+  # Para habilitar, preencha os caminhos dos arquivos de dados.
+  # O pipeline adicionará automaticamente as flags correspondentes.
+  plugins:
+    # ClinVar — classificação de patogenicidade
+    # clinvar:
+    #   enabled: false
+    #   file: "references/vep_plugins/clinvar.vcf.gz"
+
+    # gnomAD — frequências alélicas populacionais
+    # gnomad:
+    #   enabled: false
+    #   file: "references/vep_plugins/gnomad.genomes.vcf.gz"
+
+    # REVEL — predição de patogenicidade para missense
+    # revel:
+    #   enabled: false
+    #   file: "references/vep_plugins/revel_scores.tsv.gz"
+
+    # SpliceAI — predição de alteração de splicing
+    # spliceai:
+    #   enabled: false
+    #   snv_file: "references/vep_plugins/spliceai_snv.vcf.gz"
+    #   indel_file: "references/vep_plugins/spliceai_indel.vcf.gz"
+
+    # CADD — Combined Annotation Dependent Depletion
+    # cadd:
+    #   enabled: false
+    #   snv_file: "references/vep_plugins/CADD_SNVs.tsv.gz"
+    #   indel_file: "references/vep_plugins/CADD_InDels.tsv.gz"
+
+# ---- Read Groups ----
+# Valores padrão para Read Groups no BWA-MEM.
+# O nome da amostra (SM) é preenchido automaticamente.
+read_groups:
+  platform: "ILLUMINA"           # PL — plataforma de sequenciamento
+  library: "lib1"                # LB — nome da biblioteca
+  platform_unit: "unit1"         # PU — unidade de plataforma
+
+# ---- Pipeline ----
+pipeline:
+  version: "2.0.0"
+  name: "Pipeline de Variantes Germinativas"
+
+  # Habilita joint calling via GenomicsDBImport + GenotypeGVCFs
+  # quando há múltiplas amostras. Se false, gera VCF individual.
+  joint_calling: false
+
+  # Habilita a etapa de anotação com VEP.
+  # Se false, o pipeline para após a chamada de variantes.
+  annotation: true
+
+# ---- Preflight (Validações pré-execução) ----
+preflight:
+  enabled: true              # Habilita validações pre-flight
+  min_disk_gb: 10            # Espaço mínimo em disco (GB)
+  validate_fastq: true       # Valida integridade dos FASTQs
+  validate_reference: true   # Valida referência + índices
+  validate_vep_cache: true   # Valida cache do VEP
+
+# ---- Relatórios ----
+report:
+  enabled: true              # Gera relatório de execução JSON/HTML
+  format: ["json", "html"]
+
+# ---- Padrões de Nomenclatura dos FASTQs ----
+# O pipeline detecta amostras automaticamente usando estes padrões.
+# Padrões suportados (regex Python):
+#   Paired-end: {sample}_R1.fastq.gz / {sample}_R2.fastq.gz
+#               {sample}_R1_001.fastq.gz / {sample}_R2_001.fastq.gz
+#               {sample}_1.fastq.gz / {sample}_2.fastq.gz
+#   Single-end: {sample}.fastq.gz
+# FASTQs não compactados (.fastq) também são aceitos.
+sample_detection:
+  r1_patterns:
+    - "_R1_001.fastq.gz"
+    - "_R1_001.fastq"
+    - "_R1.fastq.gz"
+    - "_R1.fastq"
+    - "_1.fastq.gz"
+    - "_1.fastq"
+  r2_patterns:
+    - "_R2_001.fastq.gz"
+    - "_R2_001.fastq"
+    - "_R2.fastq.gz"
+    - "_R2.fastq"
+    - "_2.fastq.gz"
+    - "_2.fastq"

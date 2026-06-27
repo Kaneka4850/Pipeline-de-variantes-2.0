@@ -1,0 +1,10 @@
+# Configuração Local Otimizada
+cores: 4
+use-conda: true
+conda-frontend: mamba
+keep-going: true
+printshellcmds: true
+latency-wait: 5
+
+default-resources:
+  mem_mb: 4000

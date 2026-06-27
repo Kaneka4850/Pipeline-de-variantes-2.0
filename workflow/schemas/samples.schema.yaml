@@ -1,0 +1,25 @@
+$schema: "http://json-schema.org/draft-07/schema#"
+description: "Schema de validação para samples.tsv do Pipeline de Variantes"
+type: object
+
+properties:
+  sample:
+    type: string
+    description: "Nome identificador da amostra"
+    pattern: "^[A-Za-z0-9_\\-\\.]+$"
+  r1:
+    type: string
+    description: "Caminho para o arquivo FASTQ R1 (forward)"
+    minLength: 1
+  r2:
+    type: string
+    description: "Caminho para o arquivo FASTQ R2 (reverse). Vazio para single-end."
+  type:
+    type: string
+    description: "Tipo de sequenciamento detectado"
+    enum: ["PE", "SE"]
+
+required:
+  - sample
+  - r1
+  - type

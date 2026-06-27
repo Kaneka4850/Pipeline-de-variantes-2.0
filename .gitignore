@@ -1,0 +1,86 @@
+# ============================================================
+# Pipeline de Variantes Germinativas — .gitignore
+# ============================================================
+
+# ---- Resultados e dados gerados ----
+results/
+database/*.db
+logs/*.log
+logs/**/*.log
+
+# ---- Arquivos de bioinformática ----
+*.bam
+*.bam.bai
+*.bai
+*.sam
+*.vcf
+*.vcf.gz
+*.vcf.gz.tbi
+*.g.vcf
+*.g.vcf.gz
+*.g.vcf.gz.tbi
+*.bcf
+*.bed
+*.wig
+*.bigwig
+*.fastq
+*.fastq.gz
+*.fq
+*.fq.gz
+
+# ---- Índices de referência ----
+*.amb
+*.ann
+*.bwt
+*.pac
+*.sa
+*.fai
+*.dict
+
+# ---- Referência (manter .gitkeep) ----
+references/*
+!references/.gitkeep
+
+# ---- Amostras (manter .gitkeep) ----
+samples/*
+!samples/.gitkeep
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.pytest_cache/
+.mypy_cache/
+
+# ---- Snakemake ----
+.snakemake/
+
+# ---- Ambientes ----
+.conda/
+.venv/
+venv/
+
+# ---- IDE ----
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ---- OS ----
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- Docker ----
+docker/.env
+
+# ---- Temporários ----
+*.tmp
+*.temp
+*.bak

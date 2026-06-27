@@ -1,0 +1,53 @@
+# ============================================================
+# Pipeline de Variantes Germinativas — Docker Compose
+# ============================================================
+# Uso:
+#   docker-compose -f docker/docker-compose.yml up
+#   docker-compose -f docker/docker-compose.yml run pipeline bash
+# ============================================================
+
+services:
+  pipeline:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: pipeline-variantes:2.0.0
+    container_name: pipeline-variantes
+
+    # Volumes organizados
+    volumes:
+      - ../samples:/data/samples:ro           # FASTQs (somente leitura)
+      - ../references:/data/references:ro     # Genoma (somente leitura)
+      - ../results:/data/results              # Saída
+      - ../config:/data/config:ro             # Configuração
+      - ../logs:/data/logs                    # Logs
+      - ../database:/data/database            # SQLite
+
+    # Variáveis de ambiente para override
+    environment:
+      - PIPELINE_THREADS=${PIPELINE_THREADS:-4}
+      - PIPELINE_MEMORY_MB=${PIPELINE_MEMORY_MB:-8000}
+
+    # Limites de recursos
+    deploy:
+      resources:
+        limits:
+          cpus: "${PIPELINE_CPUS:-4}"
+          memory: "${PIPELINE_MEMORY:-8G}"
+        reservations:
+          cpus: "1"
+          memory: "2G"
+
+    # Rede
+    networks:
+      - pipeline-net
+
+    # Restart policy
+    restart: "no"
+
+    # Working directory
+    working_dir: /opt/pipeline
+
+networks:
+  pipeline-net:
+    driver: bridge

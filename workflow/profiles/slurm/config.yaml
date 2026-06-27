@@ -1,0 +1,34 @@
+# Configuração do Snakemake para HPC (SLURM)
+executor: slurm
+jobs: 50
+latency-wait: 60
+keep-going: true
+
+# Configurações de Recursos
+default-resources:
+  slurm_partition: "cpu-normal"
+  mem_mb: 4000
+  runtime: 120   # 2 horas
+  slurm_extra: "'--output=logs/slurm/%j.out --error=logs/slurm/%j.err'"
+
+# Alocação específica por regra
+set-resources:
+  bwa_mem:
+    mem_mb: 32000
+    runtime: 360 # 6 horas
+  bwa_index:
+    mem_mb: 16000
+    runtime: 180
+  gatk_mark_duplicates:
+    mem_mb: 16000
+    runtime: 240
+  gatk_haplotype_caller:
+    mem_mb: 8000
+    runtime: 240
+  run_vep:
+    mem_mb: 16000
+    runtime: 240
+
+# Conda
+use-conda: true
+conda-frontend: mamba

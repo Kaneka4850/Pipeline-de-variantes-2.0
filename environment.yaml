@@ -1,0 +1,33 @@
+# ============================================================
+# Ambiente Conda Principal — Pipeline de Variantes Germinativas
+# ============================================================
+# Cria o ambiente com: conda env create -f environment.yaml
+# Ativa com: conda activate pipeline-variantes
+# ============================================================
+name: pipeline-variantes
+
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+
+dependencies:
+  # ---- Orquestrador ----
+  - snakemake >=8.0
+  - python >=3.10
+
+  # ---- Ferramentas de Bioinformática ----
+  - bwa >=0.7.17
+  - samtools >=1.17
+  - gatk4 >=4.4
+  - fastqc >=0.12
+  - bcftools >=1.17
+  - multiqc >=1.14
+  - htslib >=1.17          # Para tabix/bgzip
+
+  # ---- Python Dependencies ----
+  - pyyaml >=6.0
+  - jsonschema >=4.0
+
+  # ---- Testes ----
+  - pytest >=7.0
