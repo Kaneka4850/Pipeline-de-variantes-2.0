@@ -39,11 +39,11 @@ print_header() {
     clear
     echo -e "${CYAN}"
     echo "╔══════════════════════════════════════════════════════════╗"
-    echo "║                                                        ║"
-    echo "║   🧬  Pipeline de Variantes Germinativas  v${PIPELINE_VERSION}     ║"
-    echo "║                                                        ║"
-    echo "║   GATK4 Best Practices • BWA-MEM • Ensembl VEP        ║"
-    echo "║                                                        ║"
+    echo "║                                                          ║"
+    echo "║ Pipeline de Variantes Germinativas  v${PIPELINE_VERSION} ║"
+    echo "║                                                          ║"
+    echo "║   GATK4 Best Practices • BWA-MEM • Ensembl VEP           ║"
+    echo "║                                                          ║"
     echo "╚══════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
 }

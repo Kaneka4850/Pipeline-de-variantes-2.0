@@ -51,9 +51,9 @@ DB_DIR = config["dirs"]["database"]
 GENOME = config["reference"]["genome"]
 KNOWN_SITES = config["reference"].get("known_sites", [])
 
-# Recursos
-THREADS = config["resources"]["threads"]
-MEMORY_MB = config["resources"]["memory_mb"]
+# Recursos (lê de env vars se disponível, útil para Docker)
+THREADS = int(os.environ.get("PIPELINE_THREADS", config["resources"]["threads"]))
+MEMORY_MB = int(os.environ.get("PIPELINE_MEMORY_MB", config["resources"]["memory_mb"]))
 
 # Ferramentas
 BWA = get_tool_path(config, "bwa")
@@ -220,6 +220,7 @@ rule all:
 # ============================================================
 
 include: "workflow/rules/reference.smk"
+include: "workflow/rules/intervals.smk"
 include: "workflow/rules/quality.smk"
 include: "workflow/rules/alignment.smk"
 include: "workflow/rules/caller.smk"
@@ -249,15 +250,8 @@ onstart:
         results = runner.run_all()
         print(runner.summary())
         
-        if runner.has_failures:
-            print("\n[ERRO CRÍTICO] O preflight encontrou falhas que impedem a execução segura.")
-            # Dependendo da política, podemos dar sys.exit(1) aqui.
-            # Como foi pedido para não interromper tudo, apenas avisamos e deixamos o Snakemake lidar com as falhas das regras.
-        
         # Salva resultados no banco
         db = PipelineDatabase(f"{DB_DIR}/pipeline.db")
-        # Para isso precisamos do run_id, que foi criado mas está perdido no estado do Snakemake.
-        # Vamos assumir que a última execução é a nossa (já que a db foi instanciada acima).
         try:
             row = db.conn.execute("SELECT id FROM pipeline_runs ORDER BY id DESC LIMIT 1").fetchone()
             if row:
@@ -293,17 +287,56 @@ onstart:
         finally:
             db.close()
 
+        if runner.has_failures:
+            print("\n[ERRO CRÍTICO] O preflight encontrou falhas que impedem a execução segura.")
+            sys.exit(1)
+
 
 onsuccess:
     print(f"\n{'=' * 60}")
     print(f"  ✅ Pipeline concluído com sucesso!")
     print(f"  Resultados em: {RESULTS_DIR}/")
     print(f"{'=' * 60}\n")
+    
+    # Atualiza banco de dados
+    try:
+        db = PipelineDatabase(f"{DB_DIR}/pipeline.db")
+        row = db.conn.execute("SELECT id FROM pipeline_runs ORDER BY id DESC LIMIT 1").fetchone()
+        if row:
+            db.finish_run(row["id"], "SUCCESS")
+        db.close()
+    except Exception:
+        pass
 
 
 onerror:
     print(f"\n{'=' * 60}")
     print(f"  ❌ Pipeline encontrou erros.")
     print(f"  Verifique os logs em: {LOGS_DIR}/")
+    
+    # Atualiza banco de dados e Quarentena
+    try:
+        db = PipelineDatabase(f"{DB_DIR}/pipeline.db")
+        row = db.conn.execute("SELECT id FROM pipeline_runs ORDER BY id DESC LIMIT 1").fetchone()
+        if row:
+            db.finish_run(row["id"], "ERROR")
+        db.close()
+        
+        # Move amostras que falharam (sem pipeline_completed.flag ou VCF) para _failed
+        import shutil
+        failed_dir = Path(RESULTS_DIR) / "_failed"
+        for s in SAMPLES:
+            sample_dir = Path(RESULTS_DIR) / s
+            vcf = sample_dir / "variants" / f"{s}.vcf.gz"
+            if sample_dir.exists() and not vcf.exists():
+                failed_dir.mkdir(exist_ok=True)
+                dest = failed_dir / s
+                if dest.exists():
+                    shutil.rmtree(dest)
+                shutil.move(str(sample_dir), str(dest))
+                print(f"  Amostra em quarentena: {s} (movida para _failed/)")
+    except Exception as e:
+        print(f"  [AVISO] Falha ao processar quarentena: {e}")
+
     print(f"  Use 'snakemake --cores N' para retomar.")
     print(f"{'=' * 60}\n")

@@ -23,7 +23,7 @@ if KNOWN_SITES:
         """Calcula tabela de recalibração de bases (BQSR)."""
         input:
             bam=f"{RESULTS_DIR}/{{sample}}/alignment/{{sample}}.sorted.markdup.bam",
-            bai=f"{RESULTS_DIR}/{{sample}}/alignment/{{sample}}.sorted.markdup.bam.bai",
+            bai=f"{RESULTS_DIR}/{{sample}}/alignment/{{sample}}.sorted.markdup.bai",
             genome=GENOME,
             genome_fai=f"{GENOME}.fai",
             genome_dict=GENOME.rsplit(".", 1)[0] + ".dict",
@@ -60,7 +60,7 @@ if KNOWN_SITES:
         """Aplica a recalibração de bases ao BAM."""
         input:
             bam=f"{RESULTS_DIR}/{{sample}}/alignment/{{sample}}.sorted.markdup.bam",
-            bai=f"{RESULTS_DIR}/{{sample}}/alignment/{{sample}}.sorted.markdup.bam.bai",
+            bai=f"{RESULTS_DIR}/{{sample}}/alignment/{{sample}}.sorted.markdup.bai",
             table=f"{RESULTS_DIR}/{{sample}}/alignment/{{sample}}.recal_data.table",
             genome=GENOME,
             genome_fai=f"{GENOME}.fai",
@@ -102,6 +102,7 @@ rule haplotype_caller:
         genome=GENOME,
         genome_fai=f"{GENOME}.fai",
         genome_dict=GENOME.rsplit(".", 1)[0] + ".dict",
+        bed=f"{RESULTS_DIR}/intervals/targets.bed",
     output:
         gvcf=f"{RESULTS_DIR}/{{sample}}/variants/{{sample}}.g.vcf.gz",
         tbi=f"{RESULTS_DIR}/{{sample}}/variants/{{sample}}.g.vcf.gz.tbi",
@@ -114,13 +115,21 @@ rule haplotype_caller:
         mem_mb=MEMORY_MB,
     shell:
         """
+        set -euo pipefail
         mkdir -p $(dirname {output.gvcf})
         echo "[$(date)] Iniciando HaplotypeCaller (GVCF): {wildcards.sample}" > {log}
+        
+        MAPPED=$(samtools view -c -F 4 {input.bam} || echo 0)
+        if [ "$MAPPED" -lt 1000 ]; then
+            echo "ERRO: BAM com menos de 1000 reads alinhados ($MAPPED reads)." >> {log}
+            exit 1
+        fi
 
         {params.gatk} HaplotypeCaller \
             --java-options "-Xmx{resources.mem_mb}m" \
             -R {input.genome} \
             -I {input.bam} \
+            -L {input.bed} \
             -O {output.gvcf} \
             -ERC GVCF \
             --native-pair-hmm-threads {threads} \
@@ -146,9 +155,10 @@ rule genotype_gvcfs:
         genome=GENOME,
         genome_fai=f"{GENOME}.fai",
         genome_dict=GENOME.rsplit(".", 1)[0] + ".dict",
+        bed=f"{RESULTS_DIR}/intervals/targets.bed",
     output:
-        vcf=f"{RESULTS_DIR}/{{sample}}/variants/{{sample}}.vcf.gz",
-        tbi=f"{RESULTS_DIR}/{{sample}}/variants/{{sample}}.vcf.gz.tbi",
+        vcf=f"{RESULTS_DIR}/{{sample}}/variants/{{sample}}.raw.vcf.gz",
+        tbi=f"{RESULTS_DIR}/{{sample}}/variants/{{sample}}.raw.vcf.gz.tbi",
     log:
         f"{LOGS_DIR}/{{sample}}/genotype_gvcfs.log",
     params:
@@ -164,10 +174,46 @@ rule genotype_gvcfs:
             --java-options "-Xmx{resources.mem_mb}m" \
             -R {input.genome} \
             -V {input.gvcf} \
+            -L {input.bed} \
             -O {output.vcf} \
             2>> {log}
 
         echo "[$(date)] GenotypeGVCFs concluído: {output.vcf}" >> {log}
+        """
+
+
+rule variant_filtration:
+    """Aplica Hard Filtering (VariantFiltration) no VCF individual."""
+    input:
+        vcf=f"{RESULTS_DIR}/{{sample}}/variants/{{sample}}.raw.vcf.gz",
+        tbi=f"{RESULTS_DIR}/{{sample}}/variants/{{sample}}.raw.vcf.gz.tbi",
+        genome=GENOME,
+    output:
+        vcf=f"{RESULTS_DIR}/{{sample}}/variants/{{sample}}.vcf.gz",
+        tbi=f"{RESULTS_DIR}/{{sample}}/variants/{{sample}}.vcf.gz.tbi",
+    log:
+        f"{LOGS_DIR}/{{sample}}/variant_filtration.log",
+    params:
+        gatk=GATK,
+    threads: 1
+    resources:
+        mem_mb=MEMORY_MB,
+    shell:
+        """
+        echo "[$(date)] Iniciando VariantFiltration: {wildcards.sample}" > {log}
+
+        {params.gatk} VariantFiltration \
+            --java-options "-Xmx{resources.mem_mb}m" \
+            -R {input.genome} \
+            -V {input.vcf} \
+            -O {output.vcf} \
+            -filter "QD < 2.0" --filter-name "QD2" \
+            -filter "QUAL < 30.0" --filter-name "QUAL30" \
+            -filter "FS > 60.0" --filter-name "FS60" \
+            -filter "MQ < 40.0" --filter-name "MQ40" \
+            2>> {log}
+
+        echo "[$(date)] VariantFiltration concluído: {output.vcf}" >> {log}
         """
 
 
@@ -191,6 +237,7 @@ if JOINT_CALLING and len(SAMPLES) > 1:
             genome=GENOME,
             genome_fai=f"{GENOME}.fai",
             genome_dict=GENOME.rsplit(".", 1)[0] + ".dict",
+            bed=f"{RESULTS_DIR}/intervals/targets.bed",
         output:
             db=directory(f"{RESULTS_DIR}/joint/genomicsdb"),
         log:
@@ -212,6 +259,7 @@ if JOINT_CALLING and len(SAMPLES) > 1:
             {params.gatk} GenomicsDBImport \
                 --java-options "-Xmx{resources.mem_mb}m" \
                 {params.variant_args} \
+                -L {input.bed} \
                 --genomicsdb-workspace-path {output.db} \
                 2>> {log}
 
@@ -226,6 +274,7 @@ if JOINT_CALLING and len(SAMPLES) > 1:
             genome=GENOME,
             genome_fai=f"{GENOME}.fai",
             genome_dict=GENOME.rsplit(".", 1)[0] + ".dict",
+            bed=f"{RESULTS_DIR}/intervals/targets.bed",
         output:
             vcf=f"{RESULTS_DIR}/joint/all_samples.vcf.gz",
             tbi=f"{RESULTS_DIR}/joint/all_samples.vcf.gz.tbi",

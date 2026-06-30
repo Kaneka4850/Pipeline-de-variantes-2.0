@@ -16,12 +16,12 @@ services:
 
     # Volumes organizados
     volumes:
-      - ../samples:/data/samples:ro           # FASTQs (somente leitura)
-      - ../references:/data/references:ro     # Genoma (somente leitura)
-      - ../results:/data/results              # Saída
-      - ../config:/data/config:ro             # Configuração
-      - ../logs:/data/logs                    # Logs
-      - ../database:/data/database            # SQLite
+      - ../samples:/opt/pipeline/samples:ro           # FASTQs (somente leitura)
+      - ../references:/opt/pipeline/references        # Genoma (leitura/escrita para índices)
+      - ../results:/opt/pipeline/results              # Saída
+      - ../config:/opt/pipeline/config:ro             # Configuração
+      - ../logs:/opt/pipeline/logs                    # Logs
+      - ../database:/opt/pipeline/database            # SQLite
 
     # Variáveis de ambiente para override
     environment:

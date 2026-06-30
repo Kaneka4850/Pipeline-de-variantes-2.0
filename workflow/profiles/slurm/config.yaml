@@ -19,13 +19,13 @@ set-resources:
   bwa_index:
     mem_mb: 16000
     runtime: 180
-  gatk_mark_duplicates:
+  mark_duplicates:
     mem_mb: 16000
     runtime: 240
-  gatk_haplotype_caller:
+  haplotype_caller:
     mem_mb: 8000
     runtime: 240
-  run_vep:
+  vep_annotate_vcf:
     mem_mb: 16000
     runtime: 240
 

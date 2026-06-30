@@ -43,23 +43,26 @@ rule bwa_mem:
         rg_lb=RG_LIBRARY,
         rg_pu=RG_PU,
         fastq_cmd=_get_bwa_input_cmd,
+        bwa_threads=lambda wildcards, input, output, threads, resources: max(1, threads - 2),
+        sort_mem=lambda wildcards, input, output, threads, resources: f"{max(768, resources.mem_mb // 4)}M",
     threads: THREADS
     resources:
         mem_mb=MEMORY_MB,
     shell:
         r"""
+        set -euo pipefail
         mkdir -p $(dirname {output.bam})
         echo "[$(date)] Iniciando alinhamento BWA-MEM: {wildcards.sample}" > {log}
         echo "[$(date)] Read Group: @RG\tID:{params.rg_id}\tSM:{params.rg_sm}\tPL:{params.rg_pl}\tLB:{params.rg_lb}\tPU:{params.rg_pu}" >> {log}
 
         {params.bwa} mem \
-            -t {threads} \
+            -t {params.bwa_threads} \
             -R "@RG\tID:{params.rg_id}\tSM:{params.rg_sm}\tPL:{params.rg_pl}\tLB:{params.rg_lb}\tPU:{params.rg_pu}" \
             {input.genome} \
             {params.fastq_cmd} \
             2>> {log} \
-        | {params.samtools} view -@ {threads} -bS - \
-        | {params.samtools} sort -@ {threads} -m 2G -o {output.bam} -
+        | {params.samtools} view -@ 1 -b - 2>> {log} \
+        | {params.samtools} sort -@ 1 -m {params.sort_mem} -o {output.bam} - 2>> {log}
 
         echo "[$(date)] Alinhamento concluído: {output.bam}" >> {log}
         """
@@ -111,6 +114,8 @@ rule mark_duplicates:
             -M {output.metrics} \
             --CREATE_INDEX true \
             2>> {log}
+            
+        mv {output.bam:s}.bai {output.bai} 2>> {log} || true
 
         echo "[$(date)] Duplicatas marcadas: {output.bam}" >> {log}
         """
@@ -120,7 +125,7 @@ rule samtools_flagstat:
     """Gera estatísticas de alinhamento com flagstat."""
     input:
         bam=f"{RESULTS_DIR}/{{sample}}/alignment/{{sample}}.sorted.markdup.bam",
-        bai=f"{RESULTS_DIR}/{{sample}}/alignment/{{sample}}.sorted.markdup.bam.bai",
+        bai=f"{RESULTS_DIR}/{{sample}}/alignment/{{sample}}.sorted.markdup.bai",
     output:
         flagstat=f"{RESULTS_DIR}/{{sample}}/alignment/{{sample}}.flagstat.txt",
     log:
@@ -140,7 +145,7 @@ rule samtools_stats:
     """Gera estatísticas detalhadas de alinhamento."""
     input:
         bam=f"{RESULTS_DIR}/{{sample}}/alignment/{{sample}}.sorted.markdup.bam",
-        bai=f"{RESULTS_DIR}/{{sample}}/alignment/{{sample}}.sorted.markdup.bam.bai",
+        bai=f"{RESULTS_DIR}/{{sample}}/alignment/{{sample}}.sorted.markdup.bai",
         genome=GENOME,
     output:
         stats=f"{RESULTS_DIR}/{{sample}}/alignment/{{sample}}.stats.txt",

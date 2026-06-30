@@ -52,11 +52,6 @@ ENV LC_ALL=C.UTF-8
 # Cria usuário não-root
 RUN groupadd -r bioinfo && useradd -r -g bioinfo -m -s /bin/bash bioinfo
 
-# Diretórios de trabalho
-RUN mkdir -p /data/samples /data/references /data/results \
-             /data/config /data/logs /data/database \
-    && chown -R bioinfo:bioinfo /data
-
 # Copia o código do pipeline
 COPY --chown=bioinfo:bioinfo . /opt/pipeline
 
@@ -65,18 +60,12 @@ WORKDIR /opt/pipeline
 # Troca para usuário não-root
 USER bioinfo
 
-# Variáveis de ambiente para override
-ENV PIPELINE_CONFIG="/data/config/config.yaml"
-ENV PIPELINE_SAMPLES_DIR="/data/samples"
-ENV PIPELINE_RESULTS_DIR="/data/results"
-ENV PIPELINE_REFERENCES_DIR="/data/references"
-
 # Entrypoint com tini para signal handling correto
 ENTRYPOINT ["tini", "--"]
 
 # Comando padrão: pipeline completo
 CMD ["snakemake", "--cores", "all", \
-     "--configfile", "/data/config/config.yaml", \
+     "--configfile", "config/config.yaml", \
      "--keep-going", "--printshellcmds", "--rerun-incomplete"]
 
 # ---- Healthcheck ----

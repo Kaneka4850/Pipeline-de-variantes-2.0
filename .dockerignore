@@ -1,0 +1,12 @@
+# Diretórios temporários
+.snakemake/
+logs/
+results/
+samples/
+database/
+# Arquivos grandes e referências
+references/
+**/*.bam
+**/*.vcf.gz
+**/*.gvcf
+**/*.fastq.gz

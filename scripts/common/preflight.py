@@ -25,6 +25,7 @@ from typing import Any
 
 from .validation import (
     validate_fastq,
+    count_fastq_reads,
     check_disk_space,
     check_write_permission,
     check_tool_installed,
@@ -223,6 +224,18 @@ class PreflightRunner:
                     )
                     all_valid = False
 
+            # Se é paired end, verifica se as contagens batem (simetria)
+            if all_valid and sample_info.get("r1") and sample_info.get("r2"):
+                r1_count = count_fastq_reads(sample_info["r1"])
+                r2_count = count_fastq_reads(sample_info["r2"])
+                if r1_count != r2_count:
+                    self._add(
+                        f"FASTQ_{sample_name}_SYMMETRY", "FAIL",
+                        f"[{sample_name}] R1 ({r1_count} reads) e R2 ({r2_count} reads) têm contagens diferentes.",
+                        "Verifique se os arquivos estão pareados corretamente ou refaça o download.",
+                    )
+                    all_valid = False
+
         if all_valid:
             total_files = sum(
                 1 for s in self.samples.values()
@@ -230,7 +243,7 @@ class PreflightRunner:
             )
             self._add(
                 "FASTQ", "PASS",
-                f"Todos os {total_files} FASTQs validados com sucesso",
+                f"Todos os {total_files} FASTQs validados com sucesso (incluindo simetria PE)",
             )
 
     def _check_vep_cache(self) -> None:

@@ -87,6 +87,30 @@ def validate_fastq(file_path: str) -> tuple[bool, str]:
     return True, "OK"
 
 
+def count_fastq_reads(file_path: str) -> int:
+    """Conta reads de um FASTQ (compressed ou não).
+
+    Args:
+        file_path: Caminho para o FASTQ.
+
+    Returns:
+        Número de reads (linhas / 4).
+    """
+    path = Path(file_path)
+    if not path.exists():
+        return 0
+
+    opener = gzip.open if path.name.endswith('.gz') else open
+    count = 0
+    try:
+        with opener(file_path, 'rt') as f:
+            for _ in f:
+                count += 1
+    except OSError:
+        pass
+    return count // 4
+
+
 # ============================================================
 # VALIDAÇÃO DE REFERÊNCIA
 # ============================================================
